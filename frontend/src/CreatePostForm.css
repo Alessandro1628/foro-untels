@@ -1,0 +1,128 @@
+
+.publicacion-contenedor,
+.publicacion-invitado {
+  margin-top: 20px;
+  padding: 22px;
+  background: #ffffff;
+  border: 1px solid #e1e8f2;
+  border-radius: 12px;
+}
+
+.publicacion-encabezado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.publicacion-encabezado h3,
+.publicacion-invitado strong {
+  margin: 0 0 7px;
+  font-size: 17px;
+  color: #17253b;
+}
+
+.publicacion-encabezado p,
+.publicacion-invitado p {
+  margin: 0;
+  color: #718099;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.publicacion-boton,
+.publicacion-enviar {
+  padding: 12px 18px;
+  background: #193c70;
+  color: white;
+  border: none;
+  border-radius: 9px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.publicacion-boton:hover,
+.publicacion-enviar:hover {
+  background: #285a99;
+}
+
+.publicacion-boton:disabled,
+.publicacion-enviar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.publicacion-formulario {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #edf0f5;
+}
+
+.publicacion-formulario label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #33455d;
+}
+
+.publicacion-formulario input,
+.publicacion-formulario select,
+.publicacion-formulario textarea {
+  width: 100%;
+  padding: 13px;
+  color: #17253b;
+  background: white;
+  border: 1px solid #dce5ef;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+}
+
+.publicacion-formulario input:focus,
+.publicacion-formulario select:focus,
+.publicacion-formulario textarea:focus {
+  border-color: #2865a8;
+}
+
+.publicacion-formulario textarea {
+  resize: vertical;
+  min-height: 130px;
+}
+
+.publicacion-enviar {
+  align-self: flex-end;
+  margin-top: 10px;
+}
+
+.publicacion-error,
+.publicacion-exito {
+  margin-top: 15px;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.publicacion-error {
+  background: #fff0f0;
+  color: #ac2424;
+}
+
+.publicacion-exito {
+  background: #e9f7ee;
+  color: #197541;
+}
+
+@media (max-width: 600px) {
+  .publicacion-encabezado {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .publicacion-boton,
+  .publicacion-enviar {
+    width: 100%;
+  }
+}
