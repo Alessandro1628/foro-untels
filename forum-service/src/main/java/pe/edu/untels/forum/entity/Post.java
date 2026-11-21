@@ -43,6 +43,13 @@ public class Post {
     )
     private OffsetDateTime updatedAt;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "community_id")
+    private Community community;
+
+    public Community getCommunity() { return community; }
+    public void setCommunity(Community community) { this.community = community; }
+
     public Post() {
     }
 

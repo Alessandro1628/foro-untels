@@ -53,6 +53,10 @@ def main():
 
     posts = FORUM + "/posts"
     post = dict(title="Matrices", content="¿Cómo se diagonaliza una matriz?", category="Matemática")
+    community = call("GET", posts + "/communities", 200)[0]
+    call("POST", posts, 400, post, author)
+    call("POST", posts, 400, {**post, "communityId": -1}, author)
+    post["communityId"] = community["id"]
     call("POST", posts, 401, post)
     call("POST", posts, 400, {**post, "title": ""}, author)
     pid = call("POST", posts, 201, post, author)["postId"]
@@ -61,7 +65,9 @@ def main():
     call("PUT", thread, 403, post, peer)
     call("PUT", thread, 204, {**post, "title": "Título corregido"}, author)
     feed = call("GET", posts, 200)
-    assert next(p for p in feed if p["id"] == pid)["title"] == "Título corregido"
+    updated = next(p for p in feed if p["id"] == pid)
+    assert updated["title"] == "Título corregido"
+    assert updated["communityName"] == community["name"]
     replies = []
     for text in ["Primera respuesta", "Segunda respuesta"]:
         replies.append(call("POST", comments, 201, {"content": text}, peer)["commentId"])

@@ -19,7 +19,8 @@ public record CreatePostRequest(
         @NotBlank(message = "La categoria es obligatoria")
         @Size(max = 80,
                 message = "La categoria no puede superar 80 caracteres")
-        String category
+        String category,
+        Long communityId
 
 ) {
     public CreatePostRequest {

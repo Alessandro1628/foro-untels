@@ -1,5 +1,6 @@
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { api } from './api'
 import './CreatePostForm.css'
 
 const categorias = [
@@ -19,6 +20,24 @@ function CreatePostForm({ token, onCreated }) {
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState('')
   const [exito, setExito] = useState('')
+
+  const [comunidades, setComunidades] = useState([])
+  const [comunidadId, setComunidadId] = useState('')
+
+  useEffect(() => {
+    if (!mostrarFormulario) return
+    const controller = new AbortController()
+    api('posts/communities', { signal: controller.signal })
+      .then(lista => {
+        if (controller.signal.aborted) return
+        setComunidades(lista)
+        if (!lista.length) setError('Todavía no hay comunidades disponibles.')
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setError('No se pudieron cargar las comunidades. Cierra y vuelve a abrir el formulario.')
+      })
+    return () => controller.abort()
+  }, [mostrarFormulario])
 
   async function publicarPregunta(event) {
     event.preventDefault()
@@ -50,6 +69,7 @@ function CreatePostForm({ token, onCreated }) {
           title: tituloLimpio,
           content: contenidoLimpio,
           category: categoria,
+          communityId: Number(comunidadId),
         }),
       })
 
@@ -127,6 +147,8 @@ function CreatePostForm({ token, onCreated }) {
           type="button"
           className="publicacion-boton"
           onClick={() => {
+            setComunidades([])
+            setComunidadId('')
             setMostrarFormulario(!mostrarFormulario)
             setError('')
             setExito('')
@@ -176,6 +198,19 @@ function CreatePostForm({ token, onCreated }) {
               <option key={item} value={item}>
                 {item}
               </option>
+            ))}
+          </select>
+
+          <label htmlFor="post-comunidad">Comunidad</label>
+          <select
+            id="post-comunidad"
+            value={comunidadId}
+            onChange={e => setComunidadId(e.target.value)}
+            required
+          >
+            <option value="">Selecciona una comunidad</option>
+            {comunidades.map(comunidad => (
+              <option key={comunidad.id} value={comunidad.id}>{comunidad.name}</option>
             ))}
           </select>
 

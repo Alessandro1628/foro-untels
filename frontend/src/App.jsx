@@ -254,6 +254,7 @@ function App() {
                     {pregunta.category || 'General'}
                   </span>}
 
+                  {pregunta.communityName && <p>Comunidad: {pregunta.communityName}</p>}
                   <h3>{pregunta.title}</h3>
 
                   <p>{pregunta.content}</p>

@@ -25,7 +25,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
 
     @Query("""
-        select p from Post p where p.status = 'PUBLISHED' and p.moderatedAt is null
+        select p from Post p left join fetch p.community where p.status = 'PUBLISHED' and p.moderatedAt is null
         and (p.withdrawnAt is null or exists (
             select c.id from Comment c where c.postId = p.id and c.status = 'PUBLISHED'
             and c.withdrawnAt is null and c.moderatedAt is null))
