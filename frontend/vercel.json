@@ -1,4 +1,3 @@
-
 {
   "rewrites": [
     {
@@ -12,6 +11,18 @@
     {
       "source": "/api/v1/posts/:path*",
       "destination": "https://foro-untels-forum-api.onrender.com/api/v1/posts/:path*"
+    },
+    {
+      "source": "/api/v1/books",
+      "destination": "https://foro-untels-forum-api.onrender.com/api/v1/books"
+    },
+    {
+      "source": "/api/v1/reports",
+      "destination": "https://foro-untels-forum-api.onrender.com/api/v1/reports"
+    },
+    {
+      "source": "/api/v1/reports/:path*",
+      "destination": "https://foro-untels-forum-api.onrender.com/api/v1/reports/:path*"
     }
   ]
 }

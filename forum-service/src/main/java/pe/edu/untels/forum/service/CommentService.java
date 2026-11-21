@@ -1,132 +1,65 @@
-
 package pe.edu.untels.forum.service;
 
-import org.springframework.http.HttpStatus;
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
-
 import pe.edu.untels.forum.client.AuthClient;
-import pe.edu.untels.forum.dto.AuthUserResponse;
+import pe.edu.untels.forum.client.BooksClient;
 import pe.edu.untels.forum.dto.CommentResponse;
 import pe.edu.untels.forum.dto.CreateCommentRequest;
 import pe.edu.untels.forum.entity.Comment;
-import pe.edu.untels.forum.entity.Post;
 import pe.edu.untels.forum.repository.CommentRepository;
-import pe.edu.untels.forum.repository.PostRepository;
-
-import java.util.List;
 
 @Service
 public class CommentService {
+    private final CommentRepository comments;
+    private final ForumAccess access;
+    private final AuthClient auth;
+    private final BooksClient books;
 
-    private final CommentRepository commentRepository;
-    private final PostRepository postRepository;
-    private final AuthClient authClient;
-
-    public CommentService(
-            CommentRepository commentRepository,
-            PostRepository postRepository,
-            AuthClient authClient
-    ) {
-        this.commentRepository = commentRepository;
-        this.postRepository = postRepository;
-        this.authClient = authClient;
+    public CommentService(CommentRepository comments, ForumAccess access, AuthClient auth, BooksClient books) {
+        this.comments = comments;
+        this.access = access;
+        this.auth = auth;
+        this.books = books;
     }
 
-    // CREAR COMENTARIO CON JWT
     @Transactional
-    public Long createComment(
-            Long postId,
-            CreateCommentRequest request,
-            String authorization
-    ) {
-
-        // 1. Validar el JWT con Auth Service
-        AuthUserResponse user =
-                authClient.getAuthenticatedUser(authorization);
-
-        // 2. Verificar que la publicacion existe
-        // y esta disponible publicamente
-        getPublishedPost(postId);
-
-        // 3. Validar el contenido sin espacios sobrantes
-        String content = request.content().trim();
-
-        if (content.length() < 2) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "El comentario debe tener al menos 2 caracteres"
-            );
-        }
-
-        // 4. Crear el comentario
+    public Long createComment(Long postId, CreateCommentRequest request, String authorization) {
+        Long actor = auth.getAuthenticatedUser(authorization).id();
+        var book = request.bookId() == null ? null : books.resolve(request.bookId());
+        ForumAccess.requireOpen(access.thread(postId, true));
         Comment comment = new Comment();
-
         comment.setPostId(postId);
-        comment.setAuthorId(user.id());
-        comment.setContent(content);
-        comment.setStatus("PUBLISHED");
-
-        // 5. Guardar en PostgreSQL
-        Comment savedComment =
-                commentRepository.save(comment);
-
-        // 6. Devolver el ID del comentario
-        return savedComment.getId();
+        comment.setAuthorId(actor);
+        comment.setContent(request.content());
+        if (book != null) comment.attachBook(book.id(), book.title());
+        return comments.save(comment).getId();
     }
 
-    // LISTAR COMENTARIOS DE UNA PUBLICACION
     @Transactional(readOnly = true)
-    public List<CommentResponse> getCommentsByPost(
-            Long postId
-    ) {
-
-        // Comprobar que la publicacion existe
-        getPublishedPost(postId);
-
-        // Consultar los comentarios publicados
-        List<Comment> comments = commentRepository
-                .findByPostIdAndStatusOrderByCreatedAtAsc(
-                        postId,
-                        "PUBLISHED"
-                );
-
-        // Convertir entidades a DTO
-        return comments.stream()
-                .map(this::toResponse)
-                .toList();
+    public List<CommentResponse> getCommentsByPost(Long postId) {
+        access.thread(postId, false);
+        return comments.findByPostIdAndStatusAndWithdrawnAtIsNullAndModeratedAtIsNullOrderByCreatedAtAscIdAsc(postId, "PUBLISHED")
+                .stream().map(c -> new CommentResponse(c.getId(), c.getPostId(), c.getAuthorId(), c.getContent(),
+                        c.getStatus(), c.getCreatedAt(), c.getBookId(), c.getBookTitle())).toList();
     }
 
-    // BUSCAR UNA PUBLICACION PUBLICA
-    private Post getPublishedPost(Long postId) {
-
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Publicacion no encontrada"
-                ));
-
-        if (!"PUBLISHED".equals(post.getStatus())) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND,
-                    "Publicacion no encontrada"
-            );
-        }
-
-        return post;
+    @Transactional
+    public void edit(Long postId, Long id, String content, String authorization) {
+        ownComment(postId, id, authorization).setContent(content);
     }
 
-    // CONVERTIR COMMENT A COMMENTRESPONSE
-    private CommentResponse toResponse(Comment comment) {
+    @Transactional
+    public void withdraw(Long postId, Long id, String authorization) {
+        ownComment(postId, id, authorization).withdraw();
+    }
 
-        return new CommentResponse(
-                comment.getId(),
-                comment.getPostId(),
-                comment.getAuthorId(),
-                comment.getContent(),
-                comment.getStatus(),
-                comment.getCreatedAt()
-        );
+    private Comment ownComment(Long postId, Long id, String authorization) {
+        Long actor = auth.getAuthenticatedUser(authorization).id();
+        access.thread(postId, true);
+        Comment comment = access.comment(postId, id);
+        ForumAccess.requireOwner(comment.getAuthorId(), actor);
+        return comment;
     }
 }

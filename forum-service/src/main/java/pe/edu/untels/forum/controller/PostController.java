@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 
 import pe.edu.untels.forum.dto.CreatePostRequest;
 import pe.edu.untels.forum.dto.PostResponse;
+import pe.edu.untels.forum.entity.Community;
 import pe.edu.untels.forum.service.PostService;
 
 import java.util.List;
@@ -21,6 +22,11 @@ public class PostController {
 
     public PostController(PostService postService) {
         this.postService = postService;
+    }
+
+    @GetMapping("/communities")
+    public List<Community> communities() {
+        return postService.listCommunities();
     }
 
     // CREAR PUBLICACION CON JWT
@@ -54,5 +60,19 @@ public class PostController {
                 postService.getPublishedPosts();
 
         return ResponseEntity.ok(posts);
+    }
+
+    @PutMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void edit(@PathVariable Long id, @Valid @RequestBody CreatePostRequest request,
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
+        postService.edit(id, request, authorization);
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void withdraw(@PathVariable Long id,
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
+        postService.withdraw(id, authorization);
     }
 }

@@ -43,6 +43,13 @@ public class Post {
     )
     private OffsetDateTime updatedAt;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "community_id")
+    private Community community;
+
+    public Community getCommunity() { return community; }
+    public void setCommunity(Community community) { this.community = community; }
+
     public Post() {
     }
 
@@ -102,4 +109,15 @@ public class Post {
     public OffsetDateTime getUpdatedAt() {
         return updatedAt;
     }
+
+    @Column(name = "withdrawn_at")
+    private OffsetDateTime withdrawnAt;
+    @Column(name = "moderated_at")
+    private OffsetDateTime moderatedAt;
+
+    public boolean isWithdrawn() { return withdrawnAt != null; }
+    public boolean isModerated() { return moderatedAt != null; }
+    public void withdraw() { withdrawnAt = OffsetDateTime.now(ZoneOffset.UTC); }
+    public void moderate() { moderatedAt = OffsetDateTime.now(ZoneOffset.UTC); }
+
 }

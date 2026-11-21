@@ -15,6 +15,8 @@ public record PostResponse(
 
         String category,
 
+        String communityName,
+
         String status,
 
         OffsetDateTime createdAt

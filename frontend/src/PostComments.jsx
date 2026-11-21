@@ -1,10 +1,13 @@
 
 import { useEffect, useState } from 'react'
+import ContentActions from './ContentActions'
+import BookPicker from './BookPicker'
 import './PostComments.css'
 
-function PostComments({ postId, token }) {
+function PostComments({ postId, token, userId, withdrawn, onThreadChange }) {
   const [abierto, setAbierto] = useState(false)
   const [comentarios, setComentarios] = useState([])
+  const [book, setBook] = useState(null)
   const [contenido, setContenido] = useState('')
 
   const [cargando, setCargando] = useState(false)
@@ -97,6 +100,7 @@ function PostComments({ postId, token }) {
           },
           body: JSON.stringify({
             content: texto,
+            bookId: book?.id,
           }),
         }
       )
@@ -131,6 +135,7 @@ function PostComments({ postId, token }) {
         )
       }
 
+      setBook(null)
       setContenido('')
       setMensaje('Comentario publicado correctamente.')
 
@@ -212,12 +217,16 @@ function PostComments({ postId, token }) {
                   </div>
 
                   <p>{comentario.content}</p>
+                  {comentario.bookId && <a href={'https://books.google.com/books?id=' + encodeURIComponent(comentario.bookId)}
+                    target="_blank" rel="noreferrer">{comentario.bookTitle}</a>}
+                  <ContentActions isComment postId={postId} token={token} userId={userId} item={comentario}
+                    onChange={() => { setRecargar(n => n + 1); onThreadChange() }} />
                 </div>
               ))}
             </div>
           )}
 
-          {token ? (
+          {withdrawn ? <p>Esta consulta fue retirada. Sus respuestas se conservan.</p> : token ? (
             <form
               className="comentarios-formulario"
               onSubmit={publicarComentario}
@@ -237,6 +246,7 @@ function PostComments({ postId, token }) {
                 required
               />
 
+              <BookPicker book={book} onSelect={setBook} />
               <span className="comentarios-contador">
                 {contenido.length}/5000 caracteres
               </span>

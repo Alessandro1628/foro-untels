@@ -84,4 +84,15 @@ public class User {
     public OffsetDateTime getCreatedAt() {
         return createdAt;
     }
+
+    @Column(name = "academic_program", length = 120)
+    private String academicProgram;
+    @Column(length = 500)
+    private String biography;
+
+    public String getAcademicProgram() { return academicProgram; }
+    public String getBiography() { return biography; }
+    public void setAcademicProgram(String value) { academicProgram = value; }
+    public void setBiography(String value) { biography = value; }
+
 }

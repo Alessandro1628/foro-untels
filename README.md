@@ -26,12 +26,34 @@ Registro, autenticación y gestión de usuarios.
 ### Forum Service
 Publicaciones, categorías y comentarios.
 
-## APIs externas previstas
+## Integraciones
 
-- Google Books API
-- Google Meet API
-- Google Calendar API
+- Google Books permite buscar libros y guardar una referencia al publicar un comentario.
+- Google Calendar y Google Meet están previstos para las historias de Tutorías.
 
 ## Estado
 
-Proyecto en desarrollo.
+Incremento académico hasta Sprint 3.
+
+## Ejecutar el incremento de los sprints 1 a 3
+
+Se requieren Java 21, Node.js compatible con Vite 8 y dos bases PostgreSQL. Desde la raíz del proyecto, aplica cada script con el propietario de su base:
+
+```sh
+psql "$AUTH_DATABASE_URL" -v ON_ERROR_STOP=1 -f database/auth.sql
+psql "$FORUM_DATABASE_URL" -v ON_ERROR_STOP=1 -f database/forum.sql
+```
+
+Los scripts admiten tanto bases nuevas como las tablas del MVP y se pueden volver a ejecutar. Los nombres de las cuentas de aplicación locales son `auth_app` y `forum_app`. Si la aplicación se conecta con otra cuenta, configura `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD` y `SPRING_DATASOURCE_URL` (URL JDBC) por servicio y dale permisos sobre sus tablas y secuencias.
+
+- **Auth** utiliza `JWT_SECRET` (32 bytes aleatorios o más, en Base64) y `AUTH_DB_PASSWORD`. Inicia en `auth-service` con `sh mvnw spring-boot:run`, puerto 8081.
+- **Forum** utiliza `FORUM_DB_PASSWORD`, `AUTH_SERVICE_URL` y `GOOGLE_BOOKS_API_KEY`. Inicia en `forum-service` con `sh mvnw spring-boot:run`, puerto 8082. Configura la clave de Books solo en el servidor.
+- **Frontend** se inicia desde `frontend` con `npm ci` y `npm run dev`. Vite reenvía las llamadas a los servicios. En Vercel, las rutas están en `frontend/vercel.json`.
+- Antes de publicar, aplica las dos migraciones en las bases del entorno, despliega los servicios de Render y después la interfaz de Vercel. El inicio desde inactividad debe medirse directamente en esos despliegues.
+
+**Moderación.** Las cuentas nuevas se registran como `USER`. La bandeja aparece para `MODERATOR` y `ADMIN`. Para la demostración usa una cuenta de prueba previamente autorizada con uno de esos roles en Auth. El perfil editable comprende nombre, carrera o especialidad y presentación. La acreditación institucional y los calendarios de tutorías corresponden a historias posteriores.
+
+**Prueba local.** Con los dos servicios en ejecución y bases de ensayo, ejecuta `python3 tests/sprint_acceptance.py`. Crea cuentas y datos nuevos en cada ejecución. Para incluir la bandeja, configura `FORO_TEST_MOD_EMAIL` y `FORO_TEST_MOD_PASSWORD` de un moderador de pruebas. Para verificar Books con respuestas controladas, inicia `python3 tests/books_fixture.py`, arranca Forum con `BOOKS_BASE_URL=http://127.0.0.1:18090` y ejecuta las pruebas con `FORO_BOOKS_FIXTURE=1`. El doble de pruebas permite reproducir éxito, cero resultados y caída del proveedor. La comprobación con el proveedor real utiliza su URL predeterminada y la clave del proyecto.
+
+
+Para repetir el recorrido de interfaz, inicia el frontend y el servicio de libros de prueba. Con Python Playwright y Chromium instalados, ejecuta `python3 tests/browser_acceptance.py`. Puedes indicar el ejecutable con `CHROMIUM_PATH`. El recorrido usa sesiones de navegador independientes y comprueba que la respuesta de la segunda cuenta se conserva cuando el autor retira la consulta. Para las comprobaciones de compilación, ejecuta `sh mvnw verify` en cada servicio y `npm run lint` y `npm run build` en `frontend`.

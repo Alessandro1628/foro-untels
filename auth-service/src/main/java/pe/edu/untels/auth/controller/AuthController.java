@@ -13,6 +13,7 @@ import pe.edu.untels.auth.dto.UserProfileResponse;
 import pe.edu.untels.auth.service.AuthService;
 
 import java.util.Map;
+import pe.edu.untels.auth.dto.UpdateProfileRequest;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -62,6 +63,16 @@ public class AuthController {
             ) String authorization
     ) {
 
+        return ResponseEntity.ok(authService.getCurrentUser(bearerToken(authorization)));
+    }
+
+    @PutMapping("/me")
+    public UserProfileResponse update(@RequestHeader(value = "Authorization", required = false) String authorization,
+                                      @Valid @RequestBody UpdateProfileRequest request) {
+        return authService.updateProfile(bearerToken(authorization), request);
+    }
+
+    private String bearerToken(String authorization) {
         if (authorization == null ||
                 !authorization.startsWith("Bearer ")) {
             throw new ResponseStatusException(
@@ -70,11 +81,6 @@ public class AuthController {
             );
         }
 
-        String token = authorization.substring(7).trim();
-
-        UserProfileResponse profile =
-                authService.getCurrentUser(token);
-
-        return ResponseEntity.ok(profile);
+        return authorization.substring(7).trim();
     }
 }

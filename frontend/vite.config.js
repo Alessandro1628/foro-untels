@@ -15,6 +15,9 @@ export default defineConfig({
         changeOrigin: true,
       },
 
+      '/api/v1/books': 'http://localhost:8082',
+      '/api/v1/reports': 'http://localhost:8082',
+
       // Publicaciones y comentarios
       '/api/v1/posts': {
         target: 'http://localhost:8082',
