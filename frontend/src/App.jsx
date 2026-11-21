@@ -3,14 +3,45 @@ import { useEffect, useState } from 'react'
 import AuthPanel from './AuthPanel'
 import CreatePostForm from './CreatePostForm'
 import PostComments from './PostComments'
+import Profile from './Profile'
+import Moderation from './Moderation'
+import ContentActions from './ContentActions'
+import { api } from './api'
 import './App.css'
 
 
 function App() {
-  const [auth, setAuth] = useState({
-    user: null,
-    token: null,
-  })
+  const [auth, setAuth] = useState({ user: null, token: null })
+  const [view, setView] = useState('foro')
+  const [restoreAttempt, setRestoreAttempt] = useState(0)
+  const [restoreError, setRestoreError] = useState('')
+  useEffect(() => {
+    const token = sessionStorage.getItem('foro.session')
+    if (!token) return
+    const controller = new AbortController()
+    api('auth/me', { token, signal: controller.signal }).then(user => {
+      if (sessionStorage.getItem('foro.session') === token) {
+        setAuth({ user, token }); setRestoreError('')
+      }
+    }).catch(e => {
+      if (controller.signal.aborted || sessionStorage.getItem('foro.session') !== token) return
+      if (e.status === 401) sessionStorage.removeItem('foro.session')
+      else setRestoreError('No se pudo recuperar el perfil.')
+    })
+    return () => controller.abort()
+  }, [restoreAttempt])
+
+  function login(session) {
+    sessionStorage.setItem('foro.session', session.token)
+    setRestoreError('')
+    setAuth(session)
+  }
+  function logout() {
+    sessionStorage.removeItem('foro.session')
+    setAuth({ user: null, token: null })
+    setView('foro')
+  }
+  function refresh() { setReloadKey(n => n + 1) }
 
   const [preguntas, setPreguntas] = useState([])
   const [reloadKey, setReloadKey] = useState(0)
@@ -64,7 +95,8 @@ function App() {
   const categorias = [
     'Todas',
     ...new Set(
-      preguntas.map((pregunta) => pregunta.category || 'General')
+      preguntas.filter(pregunta => pregunta.status === 'PUBLISHED')
+        .map(pregunta => pregunta.category || 'General')
     ),
   ]
 
@@ -72,12 +104,11 @@ function App() {
   const preguntasFiltradas = preguntas.filter((pregunta) => {
     const coincideCategoria =
       categoria === 'Todas' ||
-      (pregunta.category || 'General') === categoria
+      (pregunta.status === 'PUBLISHED' && (pregunta.category || 'General') === categoria)
 
     const texto = `
       ${pregunta.title || ''}
       ${pregunta.content || ''}
-      ${pregunta.category || ''}
     `.toLowerCase()
 
     const coincideBusqueda = texto.includes(
@@ -115,16 +146,8 @@ function App() {
           </nav>
 
 
-<AuthPanel
-  user={auth.user}
-  onLogin={(sesion) => setAuth(sesion)}
-  onLogout={() =>
-    setAuth({
-      user: null,
-      token: null,
-    })
-  }
-/>
+          <AuthPanel user={auth.user} onLogin={login} onLogout={logout}
+            onProfile={() => setView(view === 'perfil' ? 'foro' : 'perfil')} />
 
         </div>
       </header>
@@ -132,6 +155,10 @@ function App() {
       <main className="contenedor">
         <aside className="panel-categorias">
           <h3>Explorar</h3>
+          {['MODERATOR', 'ADMIN'].includes(auth.user?.role) && <button className="categoria"
+            onClick={() => setView(view === 'reportes' ? 'foro' : 'reportes')}>
+            {view === 'reportes' ? 'Volver al foro' : 'Reportes pendientes'}
+          </button>}
           <p className="etiqueta-lateral">CATEGORÍAS</p>
 
           {categorias.map((item) => (
@@ -140,7 +167,7 @@ function App() {
               className={`categoria ${
                 categoria === item ? 'categoria-activa' : ''
               }`}
-              onClick={() => setCategoria(item)}
+              onClick={() => { setCategoria(item); setView('foro') }}
             >
               {item}
             </button>
@@ -156,6 +183,11 @@ function App() {
         </aside>
 
         <section className="contenido-principal">
+          {restoreError && <p role="alert">{restoreError} <button onClick={() => setRestoreAttempt(n => n + 1)}>Reintentar sesión</button></p>}
+          {view === 'perfil' && auth.user ? <Profile user={auth.user} token={auth.token}
+            onSave={user => setAuth(current => ({ ...current, user }))} onClose={() => setView('foro')} />
+          : view === 'reportes' && auth.user ? <Moderation token={auth.token} onChanged={refresh} />
+          : <>
           <div className="bienvenida">
             <p className="subtitulo">
               COMUNIDAD ACADÉMICA UNTELS
@@ -168,17 +200,16 @@ function App() {
           </div>
 
 
-          <CreatePostForm
+          <CreatePostForm key={auth.user?.id ?? 'visitante'}
             token={auth.token}
-            onCreated={() => {
-              setReloadKey((anterior) => anterior + 1)
-              }}
+            onCreated={refresh}
           />
 
 
           <div className="buscador">
             <input
               type="search"
+              aria-label="Buscar publicaciones"
               placeholder="Buscar preguntas o temas académicos..."
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
@@ -205,7 +236,7 @@ function App() {
             ) : error ? (
               <div className="sin-resultados">
                 {error}
-                <p>Comprueba que Forum Service esté funcionando.</p>
+                <button onClick={refresh}>Reintentar carga</button>
               </div>
             ) : preguntasFiltradas.length === 0 ? (
               <div className="sin-resultados">
@@ -219,9 +250,9 @@ function App() {
                   className="tarjeta-pregunta"
                   key={pregunta.id}
                 >
-                  <span className="etiqueta-categoria">
+                  {pregunta.category && <span className="etiqueta-categoria">
                     {pregunta.category || 'General'}
-                  </span>
+                  </span>}
 
                   <h3>{pregunta.title}</h3>
 
@@ -229,7 +260,7 @@ function App() {
 
                   <div className="pie-pregunta">
                     <span>
-                      👤 Usuario #{pregunta.authorId}
+                      {pregunta.authorId ? 'Usuario #' + pregunta.authorId : 'Autoría oculta'}
                     </span>
 
                     <span>
@@ -237,7 +268,8 @@ function App() {
                     </span>
                   </div>
 
-                  <PostComments
+                  <ContentActions postId={pregunta.id} item={pregunta} userId={auth.user?.id} token={auth.token} onChange={refresh} />
+                  <PostComments key={auth.user?.id ?? 'visitante'} userId={auth.user?.id} withdrawn={pregunta.status === 'WITHDRAWN'} onThreadChange={refresh}
                     postId={pregunta.id}
                     token={auth.token}
                   />
@@ -251,6 +283,7 @@ function App() {
             Publicaciones obtenidas desde Forum Service
             y PostgreSQL.
           </p>
+          </>}
         </section>
 
         <aside className="panel-derecho">

@@ -59,4 +59,23 @@ public class CommentController {
 
         return ResponseEntity.ok(comments);
     }
+
+    public record EditComment(@jakarta.validation.constraints.NotBlank
+                              @jakarta.validation.constraints.Size(min = 2, max = 5000) String content) {
+        public EditComment { content = content == null ? null : content.strip(); }
+    }
+
+    @PutMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void edit(@PathVariable Long postId, @PathVariable Long id, @Valid @RequestBody EditComment request,
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
+        commentService.edit(postId, id, request.content(), authorization);
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void withdraw(@PathVariable Long postId, @PathVariable Long id,
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
+        commentService.withdraw(postId, id, authorization);
+    }
 }

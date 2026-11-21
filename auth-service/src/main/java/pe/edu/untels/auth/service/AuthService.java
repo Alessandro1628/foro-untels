@@ -15,6 +15,7 @@ import pe.edu.untels.auth.repository.UserRepository;
 import pe.edu.untels.auth.security.JwtService;
 
 import java.util.Locale;
+import pe.edu.untels.auth.dto.UpdateProfileRequest;
 
 @Service
 public class AuthService {
@@ -59,7 +60,14 @@ public class AuthService {
         user.setRole("USER");
         user.setEnabled(true);
 
-        return userRepository.save(user).getId();
+        try {
+            return userRepository.saveAndFlush(user).getId();
+        } catch (org.springframework.dao.DataIntegrityViolationException ex) {
+            if (ex.getMostSpecificCause() instanceof java.sql.SQLException sql && "23505".equals(sql.getSQLState())) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "El correo electrónico ya está registrado");
+            }
+            throw ex;
+        }
     }
 
     // LOGIN CON JWT
@@ -103,6 +111,19 @@ public class AuthService {
     @Transactional(readOnly = true)
     public UserProfileResponse getCurrentUser(String token) {
 
+        return profileOf(authenticatedUser(token));
+    }
+
+    @Transactional
+    public UserProfileResponse updateProfile(String token, UpdateProfileRequest request) {
+        User user = authenticatedUser(token);
+        user.setFullName(request.fullName().strip());
+        user.setAcademicProgram(request.academicProgram() == null ? null : request.academicProgram().strip());
+        user.setBiography(request.biography() == null ? null : request.biography().strip());
+        return profileOf(user);
+    }
+
+    private User authenticatedUser(String token) {
         // Validar el JWT y obtener el ID
         Long userId = jwtService.validateAndGetUserId(token);
 
@@ -121,12 +142,17 @@ public class AuthService {
             );
         }
 
-        // Devolver datos sin exponer la contraseña
+        return user;
+    }
+
+    private UserProfileResponse profileOf(User user) {
         return new UserProfileResponse(
                 user.getId(),
                 user.getFullName(),
                 user.getEmail(),
-                user.getRole()
+                user.getRole(),
+                user.getAcademicProgram(),
+                user.getBiography()
         );
     }
 }

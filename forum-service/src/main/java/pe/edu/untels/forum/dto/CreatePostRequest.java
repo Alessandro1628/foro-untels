@@ -22,4 +22,10 @@ public record CreatePostRequest(
         String category
 
 ) {
+    public CreatePostRequest {
+        title = title == null ? null : title.strip();
+        category = category == null ? null : category.strip();
+        content = content == null ? null : content.strip();
+    }
+
 }

@@ -91,4 +91,25 @@ public class Comment {
     public OffsetDateTime getUpdatedAt() {
         return updatedAt;
     }
+
+    @Column(name = "withdrawn_at")
+    private OffsetDateTime withdrawnAt;
+    @Column(name = "moderated_at")
+    private OffsetDateTime moderatedAt;
+
+    public boolean isWithdrawn() { return withdrawnAt != null; }
+    public boolean isModerated() { return moderatedAt != null; }
+    public void withdraw() { withdrawnAt = OffsetDateTime.now(ZoneOffset.UTC); }
+    public void moderate() { moderatedAt = OffsetDateTime.now(ZoneOffset.UTC); }
+
+
+    @Column(name = "book_id", length = 64)
+    private String bookId;
+    @Column(name = "book_title", columnDefinition = "text")
+    private String bookTitle;
+
+    public String getBookId() { return bookId; }
+    public String getBookTitle() { return bookTitle; }
+    public void attachBook(String id, String title) { bookId = id; bookTitle = title; }
+
 }

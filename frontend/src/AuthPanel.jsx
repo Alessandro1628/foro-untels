@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import './AuthPanel.css'
 
-function AuthPanel({ user, onLogin, onLogout }) {
+function AuthPanel({ user, onLogin, onLogout, onProfile }) {
   const [modo, setModo] = useState(null)
   const [nombre, setNombre] = useState('')
   const [email, setEmail] = useState('')
@@ -147,9 +147,9 @@ function AuthPanel({ user, onLogin, onLogout }) {
     <>
       {user ? (
         <div className="acciones-acceso">
-          <span className="auth-usuario">
-            Hola, {user.fullName}
-          </span>
+          <button type="button" onClick={onProfile} aria-label="Mi perfil" className="auth-usuario">
+            Mi perfil · {user.fullName}
+          </button>
 
           <button type="button" onClick={onLogout}>
             Cerrar sesión

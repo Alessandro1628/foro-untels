@@ -15,7 +15,9 @@ public record CommentResponse(
 
         String status,
 
-        OffsetDateTime createdAt
+        OffsetDateTime createdAt,
+        String bookId,
+        String bookTitle
 
 ) {
 }
