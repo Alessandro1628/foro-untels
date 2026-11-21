@@ -58,6 +58,10 @@ public class Post {
         this.updatedAt = OffsetDateTime.now(ZoneOffset.UTC);
     }
 
+    @Column(name="category_id")
+    private Long categoryId;
+    public void setCategoryId(Long id) { categoryId=id; }
+
     public Long getId() {
         return id;
     }

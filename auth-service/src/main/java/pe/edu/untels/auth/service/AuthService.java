@@ -125,7 +125,8 @@ public class AuthService {
 
     private User authenticatedUser(String token) {
         // Validar el JWT y obtener el ID
-        Long userId = jwtService.validateAndGetUserId(token);
+        var session = jwtService.validate(token);
+        long userId = session.userId();
 
         // Buscar al usuario en PostgreSQL
         User user = userRepository.findById(userId)
@@ -134,8 +135,8 @@ public class AuthService {
                         "Usuario no autorizado"
                 ));
 
-        // Comprobar que la cuenta este habilitada
-        if (!Boolean.TRUE.equals(user.getEnabled())) {
+        // Invalidar sesiones anteriores a un restablecimiento.
+        if (user.getSessionVersion() != session.version() || !Boolean.TRUE.equals(user.getEnabled())) {
             throw new ResponseStatusException(
                     HttpStatus.UNAUTHORIZED,
                     "Usuario no autorizado"

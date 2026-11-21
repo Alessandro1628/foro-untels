@@ -13,7 +13,8 @@ public record CreateCommentRequest(
                 message = "El comentario debe tener entre 2 y 5000 caracteres"
         )
         String content,
-        @jakarta.validation.constraints.Pattern(regexp = "[A-Za-z0-9_-]{1,64}") String bookId
+        @jakarta.validation.constraints.Pattern(regexp = "[A-Za-z0-9_-]{1,64}") String bookId,
+        Long parentId
 
 ) {
     public CreateCommentRequest {

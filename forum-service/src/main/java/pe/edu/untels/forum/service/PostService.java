@@ -19,9 +19,11 @@ public class PostService {
     private final AuthClient auth;
     private final ForumAccess access;
 
+    private final org.springframework.jdbc.core.JdbcTemplate db;
     private final CommunityRepository communities;
 
-    public PostService(PostRepository posts, AuthClient auth, ForumAccess access, CommunityRepository communities) {
+    public PostService(PostRepository posts, AuthClient auth, ForumAccess access, CommunityRepository communities, org.springframework.jdbc.core.JdbcTemplate db) {
+        this.db=db;
         this.communities = communities;
         this.posts = posts;
         this.auth = auth;
@@ -70,7 +72,12 @@ public class PostService {
     private void apply(Post post, CreatePostRequest request) {
         post.setTitle(request.title());
         post.setContent(request.content());
-        post.setCategory(request.category());
+        if (post.getId() == null || !request.category().equals(post.getCategory())) {
+            var options=db.queryForList("select id,name from categories where active and lower(name)=lower(?) for share",request.category());
+            if(options.isEmpty()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Selecciona una categoría activa");
+            post.setCategory((String) options.getFirst().get("name"));
+            post.setCategoryId((Long) options.getFirst().get("id"));
+        }
     }
 
     @Transactional(readOnly = true)

@@ -40,6 +40,11 @@ public class Comment {
     )
     private OffsetDateTime updatedAt;
 
+    @Column(name = "parent_id")
+    private Long parentId;
+    public Long getParentId() { return parentId; }
+    public void setParentId(Long id) { parentId = id; }
+
     public Comment() {
     }
 

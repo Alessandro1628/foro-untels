@@ -1,9 +1,14 @@
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import PasswordRecovery from './PasswordRecovery'
 import './AuthPanel.css'
 
 function AuthPanel({ user, onLogin, onLogout, onProfile }) {
-  const [modo, setModo] = useState(null)
+  const [resetToken,setResetToken] = useState(() => new URLSearchParams(window.location.hash.slice(1)).get('reset'))
+  const [modo, setModo] = useState(resetToken ? 'recover' : null)
+  useEffect(() => {
+    if (resetToken) window.history.replaceState(null,'',window.location.pathname+window.location.search)
+  }, [resetToken])
   const [nombre, setNombre] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -174,7 +179,8 @@ function AuthPanel({ user, onLogin, onLogout, onProfile }) {
         </div>
       )}
 
-      {modo && (
+      {modo === 'recover' && <PasswordRecovery token={resetToken} onClose={()=>{setResetToken(null);cambiarModo('login')}}/>}
+      {modo && modo !== 'recover' && (
         <div className="auth-fondo">
           <div
             className="auth-ventana"
@@ -299,6 +305,7 @@ function AuthPanel({ user, onLogin, onLogout, onProfile }) {
               </button>
             </form>
 
+            {modo === 'login' && <button onClick={()=>cambiarModo('recover')}>Olvidé mi contraseña</button>}
             <div className="auth-cambiar">
               {modo === 'login' ? (
                 <p>

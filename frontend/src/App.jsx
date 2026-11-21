@@ -7,6 +7,11 @@ import Profile from './Profile'
 import Moderation from './Moderation'
 import ContentActions from './ContentActions'
 import { api } from './api'
+import Library from './Library'
+import Tutoring from './Tutoring'
+import Communities, { Administration } from './Communities'
+import { useRows } from './useAcademic'
+import './academic.css'
 import './App.css'
 
 
@@ -41,56 +46,27 @@ function App() {
     sessionStorage.removeItem('foro.session')
     setAuth({ user: null, token: null })
     setView('foro')
+    setScope('ALL'); setCommunity(null); setFeedError('')
   }
   function refresh() { setReloadKey(n => n + 1) }
 
-  const [preguntas, setPreguntas] = useState([])
+  const [scope,setScope] = useState('ALL')
+  const [sort,setSort] = useState('RECENT')
+  const [community,setCommunity] = useState(null)
+  const [feedError,setFeedError] = useState('')
+  async function mark(id, kind, remove=false) {
+    try {
+      await api('academic/feed/'+id+'/'+kind,{token:auth.token,method:remove?'DELETE':'PUT'})
+      setFeedError('')
+      refresh()
+    } catch (err) { setFeedError(err.message) }
+  }
   const [reloadKey, setReloadKey] = useState(0)
   const [busqueda, setBusqueda] = useState('')
   const [categoria, setCategoria] = useState('Todas')
-  const [cargando, setCargando] = useState(true)
-  const [error, setError] = useState('')
-
-  // Obtener las publicaciones reales de Forum Service
-  useEffect(() => {
-    const controller = new AbortController()
-
-    async function cargarPreguntas() {
-      try {
-        const respuesta = await fetch('/api/v1/posts', {
-          signal: controller.signal,
-        })
-
-        if (!respuesta.ok) {
-          throw new Error(
-            `Error al consultar publicaciones: ${respuesta.status}`
-          )
-        }
-
-        const datos = await respuesta.json()
-
-        if (!Array.isArray(datos)) {
-          throw new Error('La API no devolvio una lista de publicaciones')
-        }
-
-        setPreguntas(datos)
-        setError('')
-      } catch (err) {
-        if (err.name !== 'AbortError') {
-          setError('No se pudieron cargar las publicaciones.')
-          console.error(err)
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setCargando(false)
-        }
-      }
-    }
-
-    cargarPreguntas()
-
-    return () => controller.abort()
-  }, [reloadKey])
+  const params = new URLSearchParams({scope,sort,...(community && {community:community.id})})
+  const feed = useRows('academic/feed?'+params,auth.token,reloadKey)
+  const {rows:preguntas,loading:cargando,error} = feed
 
   // Crear categorias con los datos reales
   const categorias = [
@@ -141,21 +117,17 @@ function App() {
             </div>
           </div>
 
-          <nav className="navegacion" aria-label="Navegación principal">
-            <button
-              type="button"
-              className={view === 'foro' ? 'navegacion-activa' : ''}
-              onClick={() => setView('foro')}
-            >
-              Inicio
-            </button>
-            <button
-              type="button"
-              className={view === 'comunidad' ? 'navegacion-activa' : ''}
-              onClick={() => setView(view === 'comunidad' ? 'foro' : 'comunidad')}
-            >
+          <nav className="navegacion" aria-label="Navegacion principal">
+            <button type="button" className={view === 'foro' ? 'navegacion-activa' : ''}
+              onClick={() => setView('foro')}>Inicio</button>
+            <button type="button" className={['comunidad','comunidades'].includes(view) ? 'navegacion-activa' : ''}
+              onClick={() => setView(view === 'comunidad' ? 'comunidades' : 'comunidad')}>
               Comunidad universitaria
             </button>
+            <button type="button" className={view === 'biblioteca' ? 'navegacion-activa' : ''}
+              onClick={() => setView('biblioteca')}>Biblioteca</button>
+            <button type="button" className={view === 'tutorias' ? 'navegacion-activa' : ''}
+              onClick={() => setView('tutorias')}>Tutorías</button>
           </nav>
 
 
@@ -168,10 +140,10 @@ function App() {
       <main className="contenedor">
         <aside className="panel-categorias">
           <h3>Explorar</h3>
-          <button className={`categoria ${view === 'comunidad' ? 'categoria-activa' : ''}`}
-            onClick={() => setView(view === 'comunidad' ? 'foro' : 'comunidad')}>
-            <i className="bi bi-people-fill" aria-hidden="true"></i> Comunidad universitaria
-          </button>
+          {Object.entries({foro:'Foro',biblioteca:'Biblioteca',tutorias:'Tutorías',comunidades:'Comunidades',
+            ...(auth.user?.role==='ADMIN' && {admin:'Administración'})}).map(([key,label])=>
+            <button key={key} className={`categoria ${view===key?'categoria-activa':''}`}
+              onClick={()=>{setView(key);setCommunity(null)}}>{label}</button>)}
           {['MODERATOR', 'ADMIN'].includes(auth.user?.role) && <button className="categoria"
             onClick={() => setView(view === 'reportes' ? 'foro' : 'reportes')}>
             {view === 'reportes' ? 'Volver al foro' : 'Reportes pendientes'}
@@ -203,7 +175,9 @@ function App() {
           {restoreError && <p role="alert">{restoreError} <button onClick={() => setRestoreAttempt(n => n + 1)}>Reintentar sesión</button></p>}
           {view === 'perfil' && auth.user ? <Profile user={auth.user} token={auth.token}
             onSave={user => setAuth(current => ({ ...current, user }))} onClose={() => setView('foro')} />
-          : view === 'reportes' && auth.user ? <Moderation token={auth.token} onChanged={refresh} />
+          : view === 'biblioteca' ? <Library key={auth.user?.id ?? 'guest'} auth={auth}/>
+          : view === 'tutorias' ? <Tutoring key={auth.user?.id ?? 'guest'} auth={auth}/>
+          : view === 'admin' && auth.user?.role==='ADMIN' ? <Administration token={auth.token}/>
           : view === 'comunidad' ? (
             <section className="vista-comunidad" aria-labelledby="titulo-comunidad">
               <div className="bienvenida comunidad-hero">
@@ -212,24 +186,29 @@ function App() {
                 <p>Encuentra espacios académicos y participa en conversaciones con la comunidad.</p>
               </div>
               <div className="comunidad-grid">
-                {[
-                  ['bi-people-fill', 'Comunidades académicas', 'Explora temas por carrera, área de conocimiento y proyecto.'],
-                  ['bi-chat-square-text-fill', 'Conversaciones abiertas', 'Comparte dudas, propuestas y respuestas entre estudiantes.'],
-                  ['bi-mortarboard-fill', 'Aprendizaje colaborativo', 'Construye conocimiento con apoyo de la comunidad.'],
-                ].map(([icon, title, text]) => (
-                  <article className="comunidad-card" key={title}>
-                    <i className={`bi ${icon}`} aria-hidden="true"></i>
-                    <h2>{title}</h2>
-                    <p>{text}</p>
-                  </article>
-                ))}
+                <button type="button" className="comunidad-card" onClick={() => setView('comunidades')}>
+                  <i className="bi bi-people-fill" aria-hidden="true"></i>
+                  <h2>Comunidades académicas</h2>
+                  <p>Explora comunidades por carrera, área de conocimiento y proyecto.</p>
+                  <span>Explorar comunidades <i className="bi bi-arrow-right" aria-hidden="true"></i></span>
+                </button>
+                <button type="button" className="comunidad-card" onClick={() => setView('foro')}>
+                  <i className="bi bi-chat-square-text-fill" aria-hidden="true"></i>
+                  <h2>Conversaciones abiertas</h2>
+                  <p>Comparte dudas, propuestas y respuestas entre estudiantes.</p>
+                  <span>Ir a conversaciones <i className="bi bi-arrow-right" aria-hidden="true"></i></span>
+                </button>
+                <button type="button" className="comunidad-card" onClick={() => setView('tutorias')}>
+                  <i className="bi bi-mortarboard-fill" aria-hidden="true"></i>
+                  <h2>Aprendizaje colaborativo</h2>
+                  <p>Encuentra tutorías y construye conocimiento con apoyo de la comunidad.</p>
+                  <span>Ver tutorías <i className="bi bi-arrow-right" aria-hidden="true"></i></span>
+                </button>
               </div>
-              <button type="button" className="btn-universitario" onClick={() => setView('foro')}>
-                <i className="bi bi-arrow-left" aria-hidden="true"></i>
-                Volver al foro
-              </button>
             </section>
           )
+          : view === 'comunidades' ? <Communities auth={auth} onRead={c=>{setCommunity(c);setScope('ALL');setCategoria('Todas');setBusqueda('');setView('foro')}}/>
+          : view === 'reportes' && auth.user ? <Moderation token={auth.token} onChanged={refresh} />
           : <>
           <div className="bienvenida">
             <p className="subtitulo">
@@ -249,6 +228,13 @@ function App() {
           />
 
 
+          <div className="feed-controls">
+            <label>Orden<select value={sort} onChange={e=>setSort(e.target.value)}><option value="RECENT">Recientes</option><option value="FEATURED">Destacados</option></select></label>
+            {auth.token && <label>Ver publicaciones<select value={scope} onChange={e=>{setScope(e.target.value);setCommunity(null)}}>
+              <option value="ALL">Todas</option><option value="FOLLOWING">Mis comunidades</option><option value="FAVORITES">Mis favoritos</option>
+            </select></label>}
+            {community && <button onClick={()=>setCommunity(null)}>{community.name} · Quitar filtro</button>}
+          </div>{feedError && <p role="alert">{feedError}</p>}
           <div className="buscador">
             <input
               type="search"
@@ -261,7 +247,7 @@ function App() {
 
           <div className="titulo-seccion">
             <div>
-              <h2>Preguntas recientes</h2>
+              <h2>{sort==='FEATURED'?'Preguntas destacadas':'Preguntas recientes'}</h2>
               <p>
                 Explora las conversaciones de nuestra comunidad.
               </p>
@@ -312,6 +298,9 @@ function App() {
                     </span>
                   </div>
 
+                  {pregunta.status==='PUBLISHED' && <div><span>{pregunta.votes} votos útiles</span>
+                    {auth.token && <><button disabled={pregunta.voted} onClick={()=>mark(pregunta.id,'vote')}>{pregunta.voted?'Voto registrado':'Votar como útil'}</button>
+                    <button onClick={()=>mark(pregunta.id,'favorite',pregunta.favorite)}>{pregunta.favorite?'Quitar de favoritos':'Guardar en favoritos'}</button></>}</div>}
                   <ContentActions postId={pregunta.id} item={pregunta} userId={auth.user?.id} token={auth.token} onChange={refresh} />
                   <PostComments key={auth.user?.id ?? 'visitante'} userId={auth.user?.id} withdrawn={pregunta.status === 'WITHDRAWN'} onThreadChange={refresh}
                     postId={pregunta.id}

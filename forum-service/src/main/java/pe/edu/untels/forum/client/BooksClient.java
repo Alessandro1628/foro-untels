@@ -13,13 +13,16 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Component
 public class BooksClient {
-    public record Book(String id, String title, List<String> authors) {}
+    public record Book(String id, String title, List<String> authors, String previewUrl) {}
+    record Access(String viewability) {}
     record Info(String title, List<String> authors) {}
-    record Volume(String id, Info volumeInfo) {
+    record Volume(String id, Info volumeInfo, Access accessInfo) {
         Book book() {
             if (id == null || !id.matches("[A-Za-z0-9_-]{1,64}") || volumeInfo == null ||
                     volumeInfo.title() == null || volumeInfo.title().isBlank()) return null;
-            return new Book(id, volumeInfo.title(), volumeInfo.authors() == null ? List.of() : volumeInfo.authors());
+            return new Book(id, volumeInfo.title(), volumeInfo.authors() == null ? List.of() : volumeInfo.authors(),
+                accessInfo!=null && ("PARTIAL".equals(accessInfo.viewability()) || "ALL_PAGES".equals(accessInfo.viewability()))
+                ? "https://books.google.com/books?id="+id+"&printsec=frontcover" : null);
         }
     }
     record Results(List<Volume> items) {}

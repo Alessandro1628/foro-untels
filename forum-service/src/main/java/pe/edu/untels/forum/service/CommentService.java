@@ -31,6 +31,7 @@ public class CommentService {
         ForumAccess.requireOpen(access.thread(postId, true));
         Comment comment = new Comment();
         comment.setPostId(postId);
+        if (request.parentId() != null) comment.setParentId(access.comment(postId, request.parentId()).getId());
         comment.setAuthorId(actor);
         comment.setContent(request.content());
         if (book != null) comment.attachBook(book.id(), book.title());
@@ -42,7 +43,7 @@ public class CommentService {
         access.thread(postId, false);
         return comments.findByPostIdAndStatusAndWithdrawnAtIsNullAndModeratedAtIsNullOrderByCreatedAtAscIdAsc(postId, "PUBLISHED")
                 .stream().map(c -> new CommentResponse(c.getId(), c.getPostId(), c.getAuthorId(), c.getContent(),
-                        c.getStatus(), c.getCreatedAt(), c.getBookId(), c.getBookTitle())).toList();
+                        c.getStatus(), c.getCreatedAt(), c.getBookId(), c.getBookTitle(), c.getParentId())).toList();
     }
 
     @Transactional

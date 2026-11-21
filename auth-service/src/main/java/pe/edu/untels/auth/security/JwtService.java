@@ -43,6 +43,7 @@ public class JwtService {
                 .issuer("foro-untels-auth")
                 .subject(user.getId().toString())
                 .claim("role", user.getRole())
+                .claim("version", user.getSessionVersion())
                 .issuedAt(Date.from(now))
                 .expiration(
                         Date.from(now.plusMillis(expirationMs))
@@ -52,7 +53,9 @@ public class JwtService {
     }
 
     // VERIFICAR TOKEN Y OBTENER ID DEL USUARIO
-    public Long validateAndGetUserId(String token) {
+    public record Session(long userId, int version) {}
+
+    public Session validate(String token) {
 
         try {
             Claims claims = Jwts.parser()
@@ -70,7 +73,8 @@ public class JwtService {
             }
 
             // Recuperar ID del usuario
-            return Long.valueOf(claims.getSubject());
+            Integer version = claims.get("version", Integer.class);
+            return new Session(Long.parseLong(claims.getSubject()), version == null ? 0 : version);
 
         } catch (JwtException | IllegalArgumentException ex) {
 

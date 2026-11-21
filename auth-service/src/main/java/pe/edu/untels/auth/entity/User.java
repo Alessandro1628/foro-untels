@@ -91,6 +91,10 @@ public class User {
     private String biography;
 
     public String getAcademicProgram() { return academicProgram; }
+    @Column(name = "session_version")
+    private int sessionVersion;
+    public int getSessionVersion() { return sessionVersion; }
+
     public String getBiography() { return biography; }
     public void setAcademicProgram(String value) { academicProgram = value; }
     public void setBiography(String value) { biography = value; }

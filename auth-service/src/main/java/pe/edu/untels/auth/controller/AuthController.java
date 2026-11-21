@@ -72,7 +72,7 @@ public class AuthController {
         return authService.updateProfile(bearerToken(authorization), request);
     }
 
-    private String bearerToken(String authorization) {
+    static String bearerToken(String authorization) {
         if (authorization == null ||
                 !authorization.startsWith("Bearer ")) {
             throw new ResponseStatusException(

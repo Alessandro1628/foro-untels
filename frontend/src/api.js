@@ -8,13 +8,14 @@ const messages = {
 }
 
 export async function api(path, { method = 'GET', token, data, signal } = {}) {
+  const multipart = data instanceof FormData
   const response = await fetch('/api/v1/' + path, {
     method, signal,
     headers: {
       ...(token && { Authorization: 'Bearer ' + token }),
-      ...(data && { 'Content-Type': 'application/json' }),
+      ...(data && !multipart && { 'Content-Type': 'application/json' }),
     },
-    ...(data && { body: JSON.stringify(data) }),
+    ...(data && { body: multipart ? data : JSON.stringify(data) }),
   })
   if (!response.ok) {
     const error = new Error(messages[response.status] || 'No se pudo completar la solicitud.')

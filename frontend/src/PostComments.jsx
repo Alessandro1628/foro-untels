@@ -7,6 +7,7 @@ import './PostComments.css'
 function PostComments({ postId, token, userId, withdrawn, onThreadChange }) {
   const [abierto, setAbierto] = useState(false)
   const [comentarios, setComentarios] = useState([])
+  const [parent,setParent] = useState(null)
   const [book, setBook] = useState(null)
   const [contenido, setContenido] = useState('')
 
@@ -100,7 +101,7 @@ function PostComments({ postId, token, userId, withdrawn, onThreadChange }) {
           },
           body: JSON.stringify({
             content: texto,
-            bookId: book?.id,
+            bookId: book?.id, parentId: parent?.id,
           }),
         }
       )
@@ -135,6 +136,7 @@ function PostComments({ postId, token, userId, withdrawn, onThreadChange }) {
         )
       }
 
+      setParent(null)
       setBook(null)
       setContenido('')
       setMensaje('Comentario publicado correctamente.')
@@ -216,9 +218,11 @@ function PostComments({ postId, token, userId, withdrawn, onThreadChange }) {
                     </span>
                   </div>
 
+                  {comentario.parentId && <blockquote>En respuesta a #{comentario.parentId}: {comentarios.find(c=>c.id===comentario.parentId)?.content || 'Comentario no disponible'}</blockquote>}
                   <p>{comentario.content}</p>
                   {comentario.bookId && <a href={'https://books.google.com/books?id=' + encodeURIComponent(comentario.bookId)}
                     target="_blank" rel="noreferrer">{comentario.bookTitle}</a>}
+                  {token && !withdrawn && <button onClick={()=>{setParent(comentario);document.getElementById('comentario-'+postId)?.focus()}}>Responder a este comentario</button>}
                   <ContentActions isComment postId={postId} token={token} userId={userId} item={comentario}
                     onChange={() => { setRecargar(n => n + 1); onThreadChange() }} />
                 </div>
@@ -235,6 +239,7 @@ function PostComments({ postId, token, userId, withdrawn, onThreadChange }) {
                 Escribir una respuesta
               </label>
 
+              {parent && <p>En respuesta a #{parent.id}: {parent.content} <button type="button" onClick={()=>setParent(null)}>Cancelar respuesta</button></p>}
               <textarea
                 id={`comentario-${postId}`}
                 placeholder="Comparte tus conocimientos y ayuda a resolver esta pregunta..."

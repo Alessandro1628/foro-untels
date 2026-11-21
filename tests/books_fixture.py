@@ -9,6 +9,8 @@ class BooksFixture(BaseHTTPRequestHandler):
         path = urlsplit(self.path)
         query = parse_qs(path.query).get("q", [""])[0]
         book = {"id": "vol_1", "volumeInfo": {"title": "Álgebra lineal", "authors": ["Ana Ruiz"]}}
+        if query == "vista":
+            book["accessInfo"] = {"viewability": "PARTIAL"}
         status = 200
         if path.path == "/volumes/vol_1":
             result = book

@@ -17,7 +17,8 @@ public record CommentResponse(
 
         OffsetDateTime createdAt,
         String bookId,
-        String bookTitle
+        String bookTitle,
+        Long parentId
 
 ) {
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { api } from './api'
 
-export default function BookPicker({ book, onSelect }) {
+export default function BookPicker({ book, onSelect, browse=false }) {
   const [open, setOpen] = useState(false)
   const [term, setTerm] = useState('')
   const [results, setResults] = useState([])
@@ -20,9 +20,9 @@ export default function BookPicker({ book, onSelect }) {
     } catch { setMessage('No se pudo consultar Google Books. Inténtalo de nuevo.') }
     finally { setBusy(false) }
   }
-  if (book) return <div>Referencia: {book.title} <button type="button" onClick={() => onSelect(null)}>Quitar libro</button></div>
+  if (book) return <div>{book.title} {browse && (book.previewUrl ? <a href={book.previewUrl} target="_blank" rel="noreferrer">Vista previa del libro</a> : <span>Vista previa no disponible</span>)} <button type="button" onClick={() => onSelect(null)}>Quitar libro</button></div>
   return <div className="referencia">
-    <button type="button" onClick={() => setOpen(!open)}>{open ? 'Cerrar búsqueda' : 'Adjuntar libro de Google Books'}</button>
+    <button type="button" onClick={() => setOpen(!open)}>{open ? 'Cerrar búsqueda' : browse ? 'Buscar en Google Books' : 'Adjuntar libro de Google Books'}</button>
     {open && <>
       <label>Título o autor<input maxLength={150} value={term} disabled={busy}
         onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); search() } }}

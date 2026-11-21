@@ -3,15 +3,6 @@ import { useEffect, useState } from 'react'
 import { api } from './api'
 import './CreatePostForm.css'
 
-const categorias = [
-  'Ingeniería de Software',
-  'Programación',
-  'Redes',
-  'Matemática',
-  'Proyectos',
-  'General',
-]
-
 function CreatePostForm({ token, onCreated }) {
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
   const [titulo, setTitulo] = useState('')
@@ -21,15 +12,19 @@ function CreatePostForm({ token, onCreated }) {
   const [error, setError] = useState('')
   const [exito, setExito] = useState('')
 
+  const [categorias,setCategorias] = useState([])
   const [comunidades, setComunidades] = useState([])
   const [comunidadId, setComunidadId] = useState('')
 
   useEffect(() => {
     if (!mostrarFormulario) return
     const controller = new AbortController()
-    api('posts/communities', { signal: controller.signal })
-      .then(lista => {
+    Promise.all([api('posts/communities', { signal: controller.signal }), api('academic/catalogs/categories',{signal:controller.signal})])
+      .then(([lista, options]) => {
         if (controller.signal.aborted) return
+        const names=options.filter(c=>c.active).map(c=>c.name)
+        setCategorias(names)
+        setCategoria(names.includes('General')?'General':(names[0]??''))
         setComunidades(lista)
         if (!lista.length) setError('Todavía no hay comunidades disponibles.')
       })
