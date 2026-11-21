@@ -37,6 +37,7 @@ function App() {
     setAuth(session)
   }
   function logout() {
+    if (!window.confirm('¿Cerrar sesión? Tu sesión actual se eliminará de este navegador.')) return
     sessionStorage.removeItem('foro.session')
     setAuth({ user: null, token: null })
     setView('foro')
@@ -140,9 +141,21 @@ function App() {
             </div>
           </div>
 
-          <nav className="navegacion">
-            <span className="navegacion-activa">Inicio</span>
-            <span>Comunidad universitaria</span>
+          <nav className="navegacion" aria-label="Navegación principal">
+            <button
+              type="button"
+              className={view === 'foro' ? 'navegacion-activa' : ''}
+              onClick={() => setView('foro')}
+            >
+              Inicio
+            </button>
+            <button
+              type="button"
+              className={view === 'comunidad' ? 'navegacion-activa' : ''}
+              onClick={() => setView(view === 'comunidad' ? 'foro' : 'comunidad')}
+            >
+              Comunidad universitaria
+            </button>
           </nav>
 
 
@@ -155,6 +168,10 @@ function App() {
       <main className="contenedor">
         <aside className="panel-categorias">
           <h3>Explorar</h3>
+          <button className={`categoria ${view === 'comunidad' ? 'categoria-activa' : ''}`}
+            onClick={() => setView(view === 'comunidad' ? 'foro' : 'comunidad')}>
+            <i className="bi bi-people-fill" aria-hidden="true"></i> Comunidad universitaria
+          </button>
           {['MODERATOR', 'ADMIN'].includes(auth.user?.role) && <button className="categoria"
             onClick={() => setView(view === 'reportes' ? 'foro' : 'reportes')}>
             {view === 'reportes' ? 'Volver al foro' : 'Reportes pendientes'}
@@ -187,6 +204,32 @@ function App() {
           {view === 'perfil' && auth.user ? <Profile user={auth.user} token={auth.token}
             onSave={user => setAuth(current => ({ ...current, user }))} onClose={() => setView('foro')} />
           : view === 'reportes' && auth.user ? <Moderation token={auth.token} onChanged={refresh} />
+          : view === 'comunidad' ? (
+            <section className="vista-comunidad" aria-labelledby="titulo-comunidad">
+              <div className="bienvenida comunidad-hero">
+                <p className="subtitulo">COMUNIDAD UNIVERSITARIA UNTELS</p>
+                <h1 id="titulo-comunidad">Conecta, comparte y aprende.</h1>
+                <p>Encuentra espacios académicos y participa en conversaciones con la comunidad.</p>
+              </div>
+              <div className="comunidad-grid">
+                {[
+                  ['bi-people-fill', 'Comunidades académicas', 'Explora temas por carrera, área de conocimiento y proyecto.'],
+                  ['bi-chat-square-text-fill', 'Conversaciones abiertas', 'Comparte dudas, propuestas y respuestas entre estudiantes.'],
+                  ['bi-mortarboard-fill', 'Aprendizaje colaborativo', 'Construye conocimiento con apoyo de la comunidad.'],
+                ].map(([icon, title, text]) => (
+                  <article className="comunidad-card" key={title}>
+                    <i className={`bi ${icon}`} aria-hidden="true"></i>
+                    <h2>{title}</h2>
+                    <p>{text}</p>
+                  </article>
+                ))}
+              </div>
+              <button type="button" className="btn-universitario" onClick={() => setView('foro')}>
+                <i className="bi bi-arrow-left" aria-hidden="true"></i>
+                Volver al foro
+              </button>
+            </section>
+          )
           : <>
           <div className="bienvenida">
             <p className="subtitulo">
